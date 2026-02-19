@@ -4,14 +4,15 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.VisualStudio.TestPlatform.TestHost;
 using TaskTracker.TasksService.Infrastructure.Persistence;
 
 namespace TaskTracker.TasksService.Tests;
 
-public sealed class TasksServiceWebAppFactory
-    : WebApplicationFactory<Program>
+public sealed class TasksServiceWebAppFactory : WebApplicationFactory<Program>
 {
+    // Stable per factory instance (per test), but unique across tests.
+    private readonly string _dbName = $"TasksDb_Test_{Guid.NewGuid():N}";
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureServices(services =>
@@ -20,7 +21,7 @@ public sealed class TasksServiceWebAppFactory
 
             services.AddDbContext<TasksDbContext>(options =>
             {
-                options.UseInMemoryDatabase("TasksDb_Test");
+                options.UseInMemoryDatabase(_dbName);
             });
 
             services.AddAuthentication(options =>

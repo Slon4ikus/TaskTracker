@@ -1,32 +1,24 @@
-﻿using FluentAssertions;
+﻿// File: backend/src/TaskTracker.TasksService.Tests/TasksApiTests.cs
+
+using FluentAssertions;
 using System.Net;
 using System.Net.Http.Json;
-using TaskTracker.TasksService.Api.Controllers;
 using TaskTracker.TasksService.Contracts;
-using TaskTracker.TasksService.Domain;
 using TaskTracker.TasksService.Domain.Entities;
 using Xunit;
 
 namespace TaskTracker.TasksService.Tests;
 
-public sealed class TasksApiTests : IClassFixture<TasksServiceWebAppFactory>
+public sealed class TasksApiTests
 {
-    private readonly HttpClient _client;
-
-    public TasksApiTests(TasksServiceWebAppFactory factory)
-    {
-        _client = factory.CreateClient();
-    }
-
     [Fact]
     public async Task CreateTask_Then_GetById_ShouldReturnTask()
     {
-        var userId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        using var factory = new TasksServiceWebAppFactory();
+        using var client = factory.CreateClient();
 
-        _client.DefaultRequestHeaders.Remove(TestAuthHandler.UserIdHeader);
-        _client.DefaultRequestHeaders.Add(
-            TestAuthHandler.UserIdHeader,
-            userId.ToString());
+        var userId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        SetUser(client, userId);
 
         var createRequest = new CreateTaskRequest(
             Title: "Test task",
@@ -35,46 +27,38 @@ public sealed class TasksApiTests : IClassFixture<TasksServiceWebAppFactory>
             DueDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1))
         );
 
-        var createResponse = await _client.PostAsJsonAsync(
-            "/tasks",
-            createRequest);
-
+        var createResponse = await client.PostAsJsonAsync("/tasks", createRequest);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var created = await createResponse.Content
-            .ReadFromJsonAsync<CreatedResponse>();
-
+        var created = await createResponse.Content.ReadFromJsonAsync<CreatedResponse>();
         created.Should().NotBeNull();
 
-        var getResponse = await _client.GetAsync(
-            $"/tasks/{created!.Id}");
-
+        var getResponse = await client.GetAsync($"/tasks/{created!.Id}");
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
     public async Task UpdateTask_ShouldPersistChanges()
     {
+        using var factory = new TasksServiceWebAppFactory();
+        using var client = factory.CreateClient();
+
         var userId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+        SetUser(client, userId);
 
-        _client.DefaultRequestHeaders.Remove(TestAuthHandler.UserIdHeader);
-        _client.DefaultRequestHeaders.Add(
-            TestAuthHandler.UserIdHeader,
-            userId.ToString());
-
-        var createRequest = new CreateTaskRequest(
-            "Original",
-            "Original desc",
-            TaskPriority.Low,
-            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1))
-        );
-
-        var createResponse = await _client.PostAsJsonAsync(
+        var createResponse = await client.PostAsJsonAsync(
             "/tasks",
-            createRequest);
+            new CreateTaskRequest(
+                "Original",
+                "Original desc",
+                TaskPriority.Low,
+                DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1))
+            ));
 
-        var created = await createResponse.Content
-            .ReadFromJsonAsync<CreatedResponse>();
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var created = await createResponse.Content.ReadFromJsonAsync<CreatedResponse>();
+        created.Should().NotBeNull();
 
         var updateRequest = new UpdateTaskRequest(
             "Updated",
@@ -84,18 +68,14 @@ public sealed class TasksApiTests : IClassFixture<TasksServiceWebAppFactory>
             true
         );
 
-        var updateResponse = await _client.PutAsJsonAsync(
-            $"/tasks/{created!.Id}",
-            updateRequest);
-
+        var updateResponse = await client.PutAsJsonAsync($"/tasks/{created!.Id}", updateRequest);
         updateResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        var getResponse = await _client.GetAsync(
-            $"/tasks/{created.Id}");
+        var getResponse = await client.GetAsync($"/tasks/{created.Id}");
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var task = await getResponse.Content
-            .ReadFromJsonAsync<TaskItemDto>();
-
+        var task = await getResponse.Content.ReadFromJsonAsync<TaskItemDto>();
+        task.Should().NotBeNull();
         task!.Title.Should().Be("Updated");
         task.IsCompleted.Should().BeTrue();
         task.Priority.Should().Be(TaskPriority.High);
@@ -104,94 +84,66 @@ public sealed class TasksApiTests : IClassFixture<TasksServiceWebAppFactory>
     [Fact]
     public async Task CannotAccessTask_OfAnotherUser_ShouldReturn404()
     {
+        using var factory = new TasksServiceWebAppFactory();
+        using var client = factory.CreateClient();
+
         var userA = Guid.Parse("11111111-1111-1111-1111-111111111111");
         var userB = Guid.Parse("22222222-2222-2222-2222-222222222222");
 
-        _client.DefaultRequestHeaders.Remove(TestAuthHandler.UserIdHeader);
-        _client.DefaultRequestHeaders.Add(
-            TestAuthHandler.UserIdHeader,
-            userA.ToString());
+        SetUser(client, userA);
 
-        var createRequest = new CreateTaskRequest(
-            "Private",
-            null,
-            TaskPriority.Medium,
-            null
-        );
-
-        var createResponse = await _client.PostAsJsonAsync(
+        var createResponse = await client.PostAsJsonAsync(
             "/tasks",
-            createRequest);
+            new CreateTaskRequest("Private", null, TaskPriority.Medium, null));
 
-        var created = await createResponse.Content
-            .ReadFromJsonAsync<CreatedResponse>();
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        _client.DefaultRequestHeaders.Remove(TestAuthHandler.UserIdHeader);
-        _client.DefaultRequestHeaders.Add(
-            TestAuthHandler.UserIdHeader,
-            userB.ToString());
+        var created = await createResponse.Content.ReadFromJsonAsync<CreatedResponse>();
+        created.Should().NotBeNull();
 
-        var getResponse = await _client.GetAsync(
-            $"/tasks/{created!.Id}");
+        SetUser(client, userB);
 
+        var getResponse = await client.GetAsync($"/tasks/{created!.Id}");
         getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
     public async Task DeleteTask_ShouldRemoveTask()
     {
+        using var factory = new TasksServiceWebAppFactory();
+        using var client = factory.CreateClient();
+
         var userId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
+        SetUser(client, userId);
 
-        _client.DefaultRequestHeaders.Remove(TestAuthHandler.UserIdHeader);
-        _client.DefaultRequestHeaders.Add(
-            TestAuthHandler.UserIdHeader,
-            userId.ToString());
-
-        var createRequest = new CreateTaskRequest(
-            "To delete",
-            null,
-            TaskPriority.Low,
-            null
-        );
-
-        var createResponse = await _client.PostAsJsonAsync(
+        var createResponse = await client.PostAsJsonAsync(
             "/tasks",
-            createRequest);
+            new CreateTaskRequest("To delete", null, TaskPriority.Low, null));
 
-        var created = await createResponse.Content
-            .ReadFromJsonAsync<CreatedResponse>();
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var deleteResponse = await _client.DeleteAsync(
-            $"/tasks/{created!.Id}");
+        var created = await createResponse.Content.ReadFromJsonAsync<CreatedResponse>();
+        created.Should().NotBeNull();
 
+        var deleteResponse = await client.DeleteAsync($"/tasks/{created!.Id}");
         deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        var getResponse = await _client.GetAsync(
-            $"/tasks/{created.Id}");
-
+        var getResponse = await client.GetAsync($"/tasks/{created.Id}");
         getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
     public async Task CreateTask_WithoutTitle_ShouldReturnBadRequest()
     {
+        using var factory = new TasksServiceWebAppFactory();
+        using var client = factory.CreateClient();
+
         var userId = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd");
+        SetUser(client, userId);
 
-        _client.DefaultRequestHeaders.Remove(TestAuthHandler.UserIdHeader);
-        _client.DefaultRequestHeaders.Add(
-            TestAuthHandler.UserIdHeader,
-            userId.ToString());
-
-        var createRequest = new CreateTaskRequest(
-            "",
-            null,
-            TaskPriority.Low,
-            null
-        );
-
-        var response = await _client.PostAsJsonAsync(
+        var response = await client.PostAsJsonAsync(
             "/tasks",
-            createRequest);
+            new CreateTaskRequest("", null, TaskPriority.Low, null));
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -199,40 +151,35 @@ public sealed class TasksApiTests : IClassFixture<TasksServiceWebAppFactory>
     [Fact]
     public async Task GetUserTasks_ShouldReturnOnlyUserTasks()
     {
+        using var factory = new TasksServiceWebAppFactory();
+        using var client = factory.CreateClient();
+
         var userA = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
         var userB = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
 
-        // Create task for user A
-        _client.DefaultRequestHeaders.Remove(TestAuthHandler.UserIdHeader);
-        _client.DefaultRequestHeaders.Add(
-            TestAuthHandler.UserIdHeader,
-            userA.ToString());
-
-        await _client.PostAsJsonAsync("/tasks",
+        SetUser(client, userA);
+        await client.PostAsJsonAsync("/tasks",
             new CreateTaskRequest("Task A", null, TaskPriority.Low, null));
 
-        // Create task for user B
-        _client.DefaultRequestHeaders.Remove(TestAuthHandler.UserIdHeader);
-        _client.DefaultRequestHeaders.Add(
-            TestAuthHandler.UserIdHeader,
-            userB.ToString());
-
-        await _client.PostAsJsonAsync("/tasks",
+        SetUser(client, userB);
+        await client.PostAsJsonAsync("/tasks",
             new CreateTaskRequest("Task B", null, TaskPriority.Low, null));
 
-        // Read tasks for user A
-        _client.DefaultRequestHeaders.Remove(TestAuthHandler.UserIdHeader);
-        _client.DefaultRequestHeaders.Add(
-            TestAuthHandler.UserIdHeader,
-            userA.ToString());
+        SetUser(client, userA);
 
-        var response = await _client.GetAsync("/tasks");
+        var response = await client.GetAsync("/tasks");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var tasks = await response.Content
-            .ReadFromJsonAsync<List<TaskItemDto>>();
+        var tasks = await response.Content.ReadFromJsonAsync<List<TaskItemDto>>();
+        tasks.Should().NotBeNull();
+        tasks!.Should().HaveCount(1);
+        tasks[0].Title.Should().Be("Task A");
+    }
 
-        tasks.Should().HaveCount(1);
-        tasks![0].Title.Should().Be("Task A");
+    private static void SetUser(HttpClient client, Guid userId)
+    {
+        client.DefaultRequestHeaders.Remove(TestAuthHandler.UserIdHeader);
+        client.DefaultRequestHeaders.Add(TestAuthHandler.UserIdHeader, userId.ToString());
     }
 
     private sealed record CreatedResponse(Guid Id);

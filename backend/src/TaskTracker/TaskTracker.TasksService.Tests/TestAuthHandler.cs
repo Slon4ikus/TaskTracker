@@ -25,22 +25,23 @@ public sealed class TestAuthHandler
     {
         var userId = Request.Headers[UserIdHeader].ToString();
 
-        if (string.IsNullOrEmpty(userId))
-        {
+        if (string.IsNullOrWhiteSpace(userId))
             userId = "11111111-1111-1111-1111-111111111111";
-        }
+
+        // Validate GUID to avoid random failures
+        if (!Guid.TryParse(userId, out _))
+            return Task.FromResult(AuthenticateResult.Fail("Invalid test user id"));
 
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, userId)
-        };
+        new Claim(ClaimTypes.NameIdentifier, userId),
+    };
 
         var identity = new ClaimsIdentity(claims, SchemeName);
-
         var principal = new ClaimsPrincipal(identity);
-
         var ticket = new AuthenticationTicket(principal, SchemeName);
 
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }
+
 }
