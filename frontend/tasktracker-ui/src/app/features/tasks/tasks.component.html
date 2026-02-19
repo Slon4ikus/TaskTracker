@@ -1,0 +1,319 @@
+<div class="page">
+    <h1>Tasks</h1>
+
+    <!-- CREATE FORM -->
+    <div class="card form">
+
+        <input [(ngModel)]="title" placeholder="Title" class="input" />
+
+        <textarea [(ngModel)]="description" placeholder="Description" class="input" rows="3"></textarea>
+
+        <select [(ngModel)]="priority" class="input">
+            <option [ngValue]="0">Low</option>
+            <option [ngValue]="1">Medium</option>
+            <option [ngValue]="2">High</option>
+        </select>
+
+        <input type="date" [(ngModel)]="dueDate" class="input" />
+
+        <button class="button" (click)="create()" [disabled]="isSubmitting">
+            {{ isSubmitting ? 'Creating…' : 'Create task' }}
+        </button>
+
+        <div *ngIf="error" class="error">
+            {{ error }}
+        </div>
+
+    </div>
+
+
+    <!-- TASK LIST -->
+    <div class="card list">
+
+        <div *ngIf="!tasks.length" class="empty">
+            No tasks yet
+        </div>
+
+
+        <div *ngFor="let t of tasks" class="task">
+
+            <!-- TITLE -->
+            <div class="task-header">
+
+                <div class="title" *ngIf="editingId !== t.id">
+                    {{ t.title }}
+                </div>
+
+                <input *ngIf="editingId === t.id" class="input inline" [(ngModel)]="edit.title" placeholder="Title" />
+
+            </div>
+
+
+            <!-- DESCRIPTION -->
+            <div *ngIf="editingId !== t.id && t.description" class="description">
+                {{ t.description }}
+            </div>
+
+            <textarea *ngIf="editingId === t.id" class="input" rows="3" [(ngModel)]="edit.description"
+                placeholder="Description"></textarea>
+
+
+            <!-- META -->
+            <div class="meta" *ngIf="editingId !== t.id">
+                <span class="priority">
+                    {{ getPriorityLabel(t.priority) }}
+                </span>
+
+                <span *ngIf="t.dueDate">
+                    • Due {{ t.dueDate }}
+                </span>
+
+                <span class="status" [class.completed]="t.isCompleted">
+                    • {{ t.isCompleted ? 'Completed' : 'Open' }}
+                </span>
+            </div>
+
+
+            <!-- EDIT CONTROLS -->
+            <div class="edit-row" *ngIf="editingId === t.id">
+
+                <select class="input inline" [(ngModel)]="edit.priority">
+                    <option [ngValue]="TaskPriority.Low">Low</option>
+                    <option [ngValue]="TaskPriority.Medium">Medium</option>
+                    <option [ngValue]="TaskPriority.High">High</option>
+                </select>
+
+                <input class="input inline" type="date" [(ngModel)]="edit.dueDate" />
+
+                <label class="checkbox">
+                    <input type="checkbox" [(ngModel)]="edit.isCompleted" />
+                    Completed
+                </label>
+
+            </div>
+
+
+            <!-- ERROR -->
+            <div *ngIf="editingId === t.id && error" class="error">
+                {{ error }}
+            </div>
+
+
+            <!-- ACTION BUTTONS (BOTTOM RIGHT) -->
+            <div class="task-actions" *ngIf="editingId !== t.id">
+
+                <button class="btn btn-ghost" (click)="startEdit(t)">
+                    Edit
+                </button>
+
+                <button class="btn btn-danger" (click)="delete(t.id)">
+                    Delete
+                </button>
+
+            </div>
+
+            <div class="task-actions" *ngIf="editingId === t.id">
+
+                <button class="btn btn-primary" (click)="saveEdit(t)">
+                    Save
+                </button>
+
+                <button class="btn btn-ghost" (click)="cancelEdit()">
+                    Cancel
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+
+
+<style>
+    /* CRITICAL FIX: prevent inputs from overflowing container */
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+
+
+    /* PAGE */
+
+    .page {
+        max-width: 520px;
+        margin: 40px auto;
+        padding: 0 16px;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    }
+
+
+    /* CARD */
+
+    .card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+
+    /* INPUTS */
+
+    .input {
+        width: 100%;
+        padding: 10px 14px;
+        margin-bottom: 12px;
+        border-radius: 10px;
+        border: 1px solid #d1d5db;
+        font-size: 14px;
+    }
+
+    .input.inline {
+        margin-bottom: 0;
+    }
+
+
+    /* CREATE BUTTON */
+
+    .button {
+        width: 100%;
+        padding: 12px;
+        border-radius: 10px;
+        border: none;
+        background: #111827;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .button:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+    }
+
+
+    /* TASK CARD */
+
+    .task {
+        padding: 14px;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 12px;
+
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+
+    /* HEADER */
+
+    .task-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+
+    /* TEXT */
+
+    .title {
+        font-weight: 600;
+    }
+
+    .description {
+        font-size: 14px;
+        color: #374151;
+    }
+
+    .meta {
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .status.completed {
+        color: #059669;
+        font-weight: 600;
+    }
+
+    .empty {
+        text-align: center;
+        color: #6b7280;
+    }
+
+    .error {
+        color: #dc2626;
+        margin-top: 8px;
+    }
+
+
+    /* EDIT ROW */
+
+    .edit-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+
+    /* ACTION BUTTONS */
+
+    .task-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+
+    /* BUTTONS */
+
+    .btn {
+        border: 1px solid transparent;
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-weight: 600;
+        font-size: 12px;
+        cursor: pointer;
+        transition: transform 0.06s ease, opacity 0.12s ease;
+    }
+
+    .btn:active {
+        transform: translateY(1px);
+    }
+
+    .btn-primary {
+        background: #111827;
+        color: #fff;
+    }
+
+    .btn-ghost {
+        background: #fff;
+        border-color: #e5e7eb;
+        color: #111827;
+    }
+
+    .btn-danger {
+        background: #fff;
+        border-color: #fecaca;
+        color: #b91c1c;
+    }
+
+    .btn:hover {
+        opacity: 0.9;
+    }
+
+
+    /* CHECKBOX */
+
+    .checkbox {
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+</style>
