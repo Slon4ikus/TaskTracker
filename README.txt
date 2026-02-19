@@ -84,27 +84,28 @@ Architecture:
 
 TaskTracker/
 │
-├── tasktracker-ui/ # Angular frontend
+├── frontend/
+│   └── tasktracker-ui/        # Angular frontend
 │
-├── TaskTracker.IdentityService/
-│ ├── Api/
-│ ├── Application/
-│ ├── Domain/
-│ └── Infrastructure/
-│
-├── TaskTracker.TasksService/
-│ ├── Api/
-│ ├── Application/
-│ ├── Domain/
-│ └── Infrastructure/
+├── backend/
+│   └── src/
+│       ├── TaskTracker.IdentityService/
+│       │   ├── Api/
+│       │   ├── Application/
+│       │   ├── Domain/
+│       │   └── Infrastructure/
+│       │
+│       └── TaskTracker.TasksService/
+│           ├── Api/
+│           ├── Application/
+│           ├── Domain/
+│           └── Infrastructure/
 │
 ├── nginx/
-│ └── nginx.conf
+│   └── nginx.conf             # Reverse proxy configuration
 │
 ├── docker-compose.yml
-│
 └── README.md
-
 
 # How to Run the Application
 
@@ -121,7 +122,9 @@ Install:
 
 From project root directory run:
 
+```bash
 docker compose up --build -d
+```
 
 This will start:
 
@@ -143,15 +146,15 @@ http://localhost:4200
 
 The Identity Service is seeded with the following test users:
 
-User 1:
+User 1
 Username: alice
 Password: Demo1234!
 
-User 2:
+User 2
 Username: bob
 Password: Demo1234!
 
-User 3:
+User 3
 Username: marks
 Password: Demo1234!
 
@@ -169,35 +172,67 @@ Users cannot access tasks created by other users.
 
 ---
 
-# API Endpoints
+# API Documentation (Swagger)
 
-## Identity Service
+After starting the application with Docker Compose, Swagger UI is available for both microservices:
 
-Login:
+Identity Service
+Authentication and JWT token endpoints:
+http://localhost:5001/swagger/index.html
+
+Provides:
+
+User authentication
+
+JWT token generation
+
+Login endpoint
+
+Tasks Service
+Task management endpoints:
+http://localhost:5000/swagger/index.html
+
+Provides:
+
+Create task
+
+Get user tasks
+
+Update task
+
+Delete task
+
+Swagger allows testing all API endpoints directly from the browser.
+
+## Authentication
+
+All Tasks Service endpoints require JWT authentication.
+
+Authentication flow:
+
+User logs in via Identity Service
 
 POST /api/auth/login
 
-## Tasks Service
+Identity Service returns JWT token
+
+Frontend (or Swagger) sends token in Authorization header:
+
+Authorization: Bearer <your_token>
+
+Tasks Service validates the token and returns only the authenticated user's tasks
+
+In Swagger UI, click the Authorize button and enter:
+
+Bearer <your_token>
+Tasks Service Endpoints
 
 Requires JWT token.
 
-Endpoints:
-
-GET /api/tasks/
-POST /api/tasks/
-PUT /api/tasks/{id}
-DELETE /api/tasks/{id}
-
-# Authentication Flow
-
-1. User logs in
-2. Identity Service returns JWT token
-3. Frontend stores token
-4. Frontend sends token in Authorization header:
-
-Authorization: Bearer <token>
-
-5. Tasks Service validates token and returns user-specific tasks
+GET    /api/tasks/        - Get current user's tasks
+POST   /api/tasks/        - Create task
+PUT    /api/tasks/{id}    - Update task
+DELETE /api/tasks/{id}    - Delete task
 
 ---
 
