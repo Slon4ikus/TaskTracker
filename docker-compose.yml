@@ -1,0 +1,40 @@
+services:
+
+  identity-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.identity
+    ports:
+      - "5001:8080"
+    environment:
+      ConnectionStrings__IdentityDb: "Data Source=/data/identity.db"
+    volumes:
+      - identity_data:/data
+
+  tasks-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.tasks
+    ports:
+      - "5000:8080"
+    environment:
+      ConnectionStrings__TasksDb: "Data Source=/data/tasks.db"
+    volumes:
+      - tasks_data:/data
+    depends_on:
+      - identity-api
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "4200:80"
+    depends_on:
+      - tasks-api
+      - identity-api
+
+
+volumes:
+  identity_data:
+  tasks_data:

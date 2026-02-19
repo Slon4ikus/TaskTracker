@@ -1,0 +1,6 @@
+@TaskTracker.IdentityService.Api_HostAddress = http://localhost:5114
+
+GET {{TaskTracker.IdentityService.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

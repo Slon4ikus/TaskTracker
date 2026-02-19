@@ -1,0 +1,19 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+COPY src/. .
+
+WORKDIR /src/TaskTracker/TaskService/TaskTracker.TasksService.Api
+
+RUN dotnet restore TaskTracker.TasksService.Api.csproj
+
+RUN dotnet publish TaskTracker.TasksService.Api.csproj -c Release -o /app
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+WORKDIR /app
+
+COPY --from=build /app .
+
+EXPOSE 8080
+
+ENTRYPOINT ["dotnet", "TaskTracker.TasksService.Api.dll"]
