@@ -9,6 +9,7 @@ COPY tasktracker-ui ./
 RUN npx ng build tasktracker-ui --configuration production
 
 FROM nginx:alpine
+
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 COPY --from=build /app/dist/tasktracker-ui/browser /usr/share/nginx/html

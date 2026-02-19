@@ -21,19 +21,19 @@ public sealed class DbInitializer
             {
                 Id = Guid.NewGuid(),
                 UserName = "alice",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("1234")
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Demo1234!")
             },
             new User
             {
                 Id = Guid.NewGuid(),
                 UserName = "bob",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("1234")
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Demo1234!")
             },
             new User
             {
                 Id = Guid.NewGuid(),
                 UserName = "marks",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("1234")
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Demo1234!")
             }
         );
 

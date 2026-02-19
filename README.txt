@@ -145,15 +145,15 @@ The Identity Service is seeded with the following test users:
 
 User 1:
 Username: alice
-Password: 1234
+Password: Demo1234!
 
 User 2:
 Username: bob
-Password: 1234
+Password: Demo1234!
 
 User 3:
 Username: marks
-Password: 1234
+Password: Demo1234!
 
 ---
 
