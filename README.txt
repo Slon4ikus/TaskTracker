@@ -324,11 +324,11 @@ The tests use:
 
 ## Run tests
 
-From backend/src directory:
+From root directory:
 
 ```bash
-dotnet test
-
+dotnet test ".\backend\src\TaskTracker\TaskTracker.TasksService.Tests\TaskTracker.TasksService.Tests.csproj"
+```
 
 # Author
 
