@@ -95,17 +95,23 @@ TaskTracker/
 │       │   ├── Domain/
 │       │   └── Infrastructure/
 │       │
-│       └── TaskTracker.TasksService/
-│           ├── Api/
-│           ├── Application/
-│           ├── Domain/
-│           └── Infrastructure/
+│       ├── TaskTracker.TasksService/
+│       │   ├── Api/
+│       │   ├── Application/
+│       │   ├── Domain/
+│       │   └── Infrastructure/
+│       │
+│       └── TaskTracker.TasksService.Tests/   # Integration tests
+│           ├── TasksApiTests.cs
+│           ├── TasksServiceWebAppFactory.cs
+│           └── TestAuthHandler.cs
 │
 ├── nginx/
 │   └── nginx.conf             # Reverse proxy configuration
 │
 ├── docker-compose.yml
 └── README.md
+
 
 # How to Run the Application
 
@@ -291,6 +297,38 @@ No CORS configuration is required.
 All services communicate inside Docker network.
 
 ---
+
+# Tests
+
+The project includes integration tests for Tasks Service.
+
+Location:
+
+backend/src/TaskTracker.TasksService.Tests/
+
+Tests cover:
+
+- Task creation
+- Task update
+- Task deletion
+- Task access isolation between users
+- Validation (e.g. empty title)
+- Authentication simulation using TestAuthHandler
+
+The tests use:
+
+- xUnit
+- WebApplicationFactory
+- InMemory database
+- Test authentication handler
+
+## Run tests
+
+From backend/src directory:
+
+```bash
+dotnet test
+
 
 # Author
 
